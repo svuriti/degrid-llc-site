@@ -1,8 +1,18 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Bolt, Building2, Cpu, Layers, Mail, Phone, Sparkles, Workflow, CheckCircle2, MapPin } from "lucide-react";
 
 export default function DeGridLLC() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [formStatus, setFormStatus] = useState({
+    state: "idle",
+    message: "",
+  });
+
   const nav = [
     { id: "about", label: "About" },
     { id: "services", label: "Services" },
@@ -63,11 +73,73 @@ export default function DeGridLLC() {
   ];
 
   const industries = [
-    { icon: <Building2 className="w-5 h-5" />, label: "Utilities (IOU, Public Power, Co-ops)" },
-    { icon: <Sparkles className="w-5 h-5" />, label: "IPPs & Developers" },
-    { icon: <Cpu className="w-5 h-5" />, label: "Vendors & Platform Providers" },
-    { icon: <Layers className="w-5 h-5" />, label: "System Integrators" },
+    { icon: <Building2 className="w-5 h-5" aria-hidden="true" />, label: "Utilities (IOU, Public Power, Co-ops)" },
+    { icon: <Sparkles className="w-5 h-5" aria-hidden="true" />, label: "IPPs & Developers" },
+    { icon: <Cpu className="w-5 h-5" aria-hidden="true" />, label: "Vendors & Platform Providers" },
+    { icon: <Layers className="w-5 h-5" aria-hidden="true" />, label: "System Integrators" },
   ];
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmitInquiry = async (event) => {
+    event.preventDefault();
+
+    if (formStatus.state === "submitting") {
+      return;
+    }
+
+    const trimmed = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      message: formData.message.trim(),
+    };
+
+    if (!trimmed.name || !trimmed.email || !trimmed.message) {
+      setFormStatus({
+        state: "error",
+        message: "Please fill out name, email, and how we can help.",
+      });
+      return;
+    }
+
+    setFormStatus({ state: "submitting", message: "" });
+
+    try {
+      const response = await fetch("/api/send-inquiry", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(trimmed),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const errorMessage = payload?.error || "We couldn't send your message. Please try again.";
+        throw new Error(errorMessage);
+      }
+
+      setFormStatus({
+        state: "success",
+        message: "Thanks! We received your inquiry and will respond shortly.",
+      });
+      setFormData({ name: "", email: "", message: "" });
+    } catch (error) {
+      setFormStatus({
+        state: "error",
+        message: error.message || "We couldn't send your message. Please try again.",
+      });
+    }
+  };
+
+  const isSubmitting = formStatus.state === "submitting";
 
   return (
     <div className="min-h-screen text-slate-900 bg-gradient-to-b from-white via-slate-50 to-white">
@@ -228,26 +300,73 @@ export default function DeGridLLC() {
               <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">Let’s talk</h2>
               <p className="mt-4 text-slate-200">Tell us about your EMS/DMS/MMS initiative or challenge. We’ll respond within one business day.</p>
               <div className="mt-6 space-y-3 text-sm">
-                <p className="flex items-center gap-2"><Mail className="w-4 h-4"/> <a className="underline underline-offset-4" href="mailto:contact@degridllc.com">contact@degridllc.com</a></p>
-                <p className="flex items-center gap-2"><Phone className="w-4 h-4"/> <a className="underline underline-offset-4" href="tel:+1-425-615-5029">+1-425-615-5029</a></p>
-                <p className="flex items-center gap-2"><MapPin className="w-4 h-4"/> <span>Washington, USA</span></p>
+                <p className="flex items-center gap-2"><Mail className="w-4 h-4" aria-hidden="true" /> <a className="underline underline-offset-4" href="mailto:contact@degridllc.com">contact@degridllc.com</a></p>
+                <p className="flex items-center gap-2"><Phone className="w-4 h-4" aria-hidden="true" /> <a className="underline underline-offset-4" href="tel:+1-425-615-5029">+1-425-615-5029</a></p>
+                <p className="flex items-center gap-2"><MapPin className="w-4 h-4" aria-hidden="true" /> <span>Washington, USA</span></p>
               </div>
             </div>
-            <form onSubmit={(e)=>e.preventDefault()} className="p-6 rounded-2xl bg-white text-slate-900 space-y-4">
+            <form onSubmit={handleSubmitInquiry} className="p-6 rounded-2xl bg-white text-slate-900 space-y-4">
               <div>
-                <label className="text-sm text-slate-700">Name</label>
-                <input className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="Your name"/>
+                <label className="text-sm text-slate-700" htmlFor="contact-name">Name</label>
+                <input
+                  id="contact-name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  autoComplete="name"
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1"
+                  placeholder="Your name"
+                  disabled={isSubmitting}
+                />
               </div>
               <div>
-                <label className="text-sm text-slate-700">Email</label>
-                <input type="email" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="you@company.com"/>
+                <label className="text-sm text-slate-700" htmlFor="contact-email">Email</label>
+                <input
+                  id="contact-email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  autoComplete="email"
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1"
+                  placeholder="you@company.com"
+                  disabled={isSubmitting}
+                />
               </div>
               <div>
-                <label className="text-sm text-slate-700">How can we help?</label>
-                <textarea rows={4} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="Briefly describe your project or challenge"/>
+                <label className="text-sm text-slate-700" htmlFor="contact-message">How can we help?</label>
+                <textarea
+                  id="contact-message"
+                  name="message"
+                  rows={4}
+                  value={formData.message}
+                  onChange={handleInputChange}
+                  required
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1"
+                  placeholder="Briefly describe your project or challenge"
+                  disabled={isSubmitting}
+                />
               </div>
-              <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white w-full justify-center">Send inquiry <ArrowRight className="w-4 h-4"/></button>
-              <p className="text-xs text-slate-500 text-center">This demo form does not submit anywhere yet.</p>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white w-full justify-center disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-sky-500"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Sending..." : "Send inquiry"} <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </button>
+              {formStatus.message ? (
+                <p
+                  className={`text-xs text-center ${formStatus.state === "success" ? "text-emerald-600" : "text-rose-500"}`}
+                  role="status"
+                  aria-live="polite"
+                >
+                  {formStatus.message}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500 text-center">We use this form to start the conversation—no automated marketing emails.</p>
+              )}
             </form>
           </div>
         </div>

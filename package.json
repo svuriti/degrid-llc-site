@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "nodemailer": "^6.9.14",
     "framer-motion": "^11.0.0",
     "lucide-react": "^0.446.0",
     "react": "^18.3.1",
